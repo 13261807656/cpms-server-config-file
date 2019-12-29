@@ -6,7 +6,7 @@ spring:
     username: root
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://47.97.198.135:3306/CPMS_MMAT?useUnicode=true&characterEncoding=utf-8&allowMultiQueries=true
+    url: jdbc:mysql://47.97.198.135:3306/CPMS_SYS_AUTH?useUnicode=true&characterEncoding=utf-8&allowMultiQueries=true
     type: com.alibaba.druid.pool.DruidDataSource
     druid:
       initial-size: 5
@@ -35,30 +35,28 @@ spring:
         min-idle: 2
     timeout: 60s
   rabbitmq:
-    host: rabbitmq.component.cpms
+    host: 114.116.118.83
     port: 5672
-    username: guest
-    password: '{cipher}cd9658d7338b3215f999d811ee725d2b3d6458c7f2c44f21f871c68faca5511d'
+    username: rabbitadmin
+    password: 123456
   cloud:
     bus:
       enabled: true
       trace:
         enabled: true
-ribbon:
-  readTimeout: 30000
-  socketTimeout: 30000
-  connectTimeout: 30000
-feign:
-  hystrix:
-    enabled: false
-    command:
-      default:
-        execution:
-          isolation:
-            thread:
-              timeoutInMilliseconds: 10000
-          timeout:
-            enabled: false
+  sleuth:
+    web:
+      client:
+        enabled: true
+      sampler:
+        probability: 1.0 # 将采样比例设置为 1.0，也就是全部都需要。默认是 0.1
+  zipkin:
+    base-url: http://zipkin.server.cpms:9411/ # 指定了 Zipkin 服务器的地址    
+management:
+  endpoints:
+    web:
+      exposure:
+        include: bus-refresh   
 mybatis-plus:
   mapper-locations: classpath:mapper/**/*.xml,classpath*:/mybatis-mappers/**/*.xml,classpath*:/templet-mappers/**/*.xml,classpath*:/extra-mappers/**/*.xml
   #实体扫描，多个package用逗号或者分号分隔
@@ -88,13 +86,13 @@ security:
     client:
       clientId: cpms-client-browser
       clientSecret: cpms-client-browser-secret
-      access-token-uri: http://auth.common.cpms:2000/oauth/token
-      user-authorization-uri: http://auth.common.cpms:2000/oauth/authorize
+      access-token-uri: http://47.97.198.135:2000/oauth/token
+      user-authorization-uri: http://47.97.198.135:2000/oauth/authorize
     resource:
-      user-info-uri: http://auth.common.cpms:2000/user
+      user-info-uri: http://47.97.198.135:2000/user
       prefer-token-info: false
       jwt:
-        key-uri: http://auth.common.cpms:2000/oauth/token_key
+        key-uri: http://47.97.198.135:2000/oauth/token_key
       id: cpms-resource-user
 
 cpms:
@@ -106,8 +104,43 @@ cpms:
       clientId: ${security.oauth2.client.clientId}
       clientSecret: ${security.oauth2.client.clientSecret}
       clientAuthenticationScheme: header
-      tokenStore: jwt
-  excel-import:
-    temp:
-      local-dir: /app/cpms/temp/
-##############################################################################
+  security:
+      oauth2:
+        tokenStore: jwt
+        clients[0]:
+          clientId: cpms-client-auth
+          clientSecret: $2a$10$fMMpjxVt2jWnzSbwRLtCj.niTQTkohoK.ErytnW9ZrWk3ceY9bFyy
+          accessTokenValidateSeconds: 7200
+          scope: "*"
+        clients[1]:
+          clientId: cpms-client-browser
+          clientSecret: $2a$10$z/nWTNgiOcRtEEz1Jj7HleYDiVyeARhIpYEFr.cEdGvv3dwCBQTOi
+          accessTokenValidateSeconds: 7200
+          scope: "*"
+        clients[2]:
+          clientId: cpms-client-log
+          clientSecret: cpms-client-log-secret
+          accessTokenValidateSeconds: 7200
+          scope: "*"
+        clients[3]:
+          clientId: cpms-client-user
+          clientSecret: cpms-client-user-secret
+          accessTokenValidateSeconds: 7200
+          scope: "*"  
+env: dev
+smap:
+  appId: PMS@HQ.CMCC
+  authUrl: xmis://10.1.55.251:11000
+  synUrl: 172.16.192.135
+  #是否开启smap验证
+  disJunctor: false
+
+redirect:
+  #单点跳转url
+  locationUrl: http://10.139.16.146:80/pms/index.html#/login
+  #代办跳转前缀
+#  pendingUrl: http://10.217.240.193:80/uat/pms/index.html#
+  pendingUrl: http://cpms.hqtest.cmcc:8000/pms/index.html#
+
+itsm:
+  appId: ITSM@HQ.CMCC
